@@ -13,6 +13,7 @@ Spree::Shipment.class_eval do
     else
       new_quantity = existing_inventory_unit.quantity + quantity
       existing_inventory_unit.update(:quantity => new_quantity)
+      existing_inventory_unit
     end
   end
 

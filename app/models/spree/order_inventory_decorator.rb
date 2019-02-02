@@ -46,7 +46,7 @@ Spree::OrderInventory.class_eval do
    shipment_units = shipment.inventory_units_for_item(line_item, variant).reject do |variant_unit|
      variant_unit.state == 'shipped'
    end.sort_by(&:state)
-   
+
    removed_quantity = 0
 
    shipment_units.each do |inventory_unit|

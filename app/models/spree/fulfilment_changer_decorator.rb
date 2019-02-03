@@ -13,7 +13,6 @@ Spree::FulfilmentChanger.class_eval do
     ActiveRecord::Base.transaction do
       if handle_stock_counts?
         # We only run this query if we need it.
-        # current_on_hand_quantity = [current_shipment.inventory_units.pre_shipment.size, quantity].min #TODO
         current_on_hand_quantity = [current_shipment.inventory_units.pre_shipment.sum(&:quantity), quantity].min
         # Restock things we will not fulfil from the current shipment anymore
         current_stock_location.restock(variant, current_on_hand_quantity, current_shipment)
@@ -27,9 +26,6 @@ Spree::FulfilmentChanger.class_eval do
       current_shipment.
         inventory_units.
         where(variant: variant).
-          # order(state: :asc). #TODO
-          # limit(new_on_hand_quantity). #TODO
-          # update_all(shipment_id: desired_shipment.id, state: :on_hand) #TODO
 
         order(state: :asc).each do |iu|
           if iu.carton_id == 12
@@ -50,9 +46,6 @@ Spree::FulfilmentChanger.class_eval do
       current_shipment.
         inventory_units.
         where(variant: variant).
-          # order(state: :asc). #TODO
-          # limit(quantity - new_on_hand_quantity). #TODO
-          # update_all(shipment_id: desired_shipment.id, state: :backordered) #TODO
         order(state: :desc).each do |iu|
           break if updated_quantity == target
           if iu.quantity <= target
@@ -96,7 +89,6 @@ Spree::FulfilmentChanger.class_eval do
     if current_stock_location != desired_stock_location
       0
     else
-      # current_shipment.inventory_units.where(variant: variant).on_hand.count #TODO
       current_shipment.inventory_units.where(variant: variant).on_hand.sum(&:quantity)
     end
   end

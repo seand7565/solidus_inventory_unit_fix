@@ -28,17 +28,15 @@ Spree::Stock::SimpleCoordinator.class_eval do
 
     packages = @stock_locations.map do |stock_location|
       # Combine on_hand and backorders into a single package per-location
-      on_hand = on_hand_packages[stock_location.id] || Spree::StockQuantities.new
-      backordered = backordered_packages[stock_location.id] || Spree::StockQuantities.new
-
+      on_hand = (on_hand_packages[stock_location.id] || Spree::StockQuantities.new)
+      backordered = (backordered_packages[stock_location.id] || Spree::StockQuantities.new)
       # Skip this location it has no inventory
       next if on_hand.empty? && backordered.empty?
 
       # Turn our raw quantities into a Stock::Package
       package = Spree::Stock::Package.new(stock_location)
-      package.add(get_unit(on_hand), :on_hand) unless on_hand.empty?
-      package.add(get_unit(backordered), :backordered) unless backordered.empty?
-
+      add_to_package(on_hand, package, :on_hand)
+      add_to_package(backordered, package, :backordered)
       package
     end.compact
 
@@ -62,18 +60,21 @@ Spree::Stock::SimpleCoordinator.class_eval do
     )
   end
 
-  def get_unit(quantities)
-    # Change our raw quantities back into inventory units
-    new_unit = ""
-    quantities.flat_map do |variant, quantity|
-      inventory_units = @inventory_units_by_variant[variant]
-      line_item_id = inventory_units.first.line_item_id
-      remaining = inventory_units.sum(&:quantity) - quantity
-      @inventory_units_by_variant[variant] = []
-      @inventory_units_by_variant[variant] = [build_unit(remaining,line_item_id,variant)] if remaining > 0
-      new_unit = build_unit([inventory_units.sum(&:quantity),quantity].min,line_item_id,variant)
+  def add_to_package(to_add,package,state)
+    to_add.each do |variant,quantity|
+      unless quantity.zero?
+        package.add(get_unit(variant, quantity), state)
+      end
     end
-    new_unit
+  end
+
+  def get_unit(variant,quantity)
+    inventory_units = @inventory_units_by_variant[variant]
+    line_item_id = inventory_units.first.line_item_id
+    remaining = inventory_units.sum(&:quantity) - quantity
+    @inventory_units_by_variant[variant] = []
+    @inventory_units_by_variant[variant] = [build_unit(remaining,line_item_id,variant)] if remaining > 0
+    new_unit = build_unit([inventory_units.sum(&:quantity),quantity].min,line_item_id,variant)
   end
 
 end
